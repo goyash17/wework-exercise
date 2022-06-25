@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<flow name="update-shopping-cartFlow" doc:id="1acf5f34-7595-435e-b273-8db8800cafc4" >
+		<ee:transform doc:name="updateCartVar" doc:id="6001b23d-9bbc-4a81-9d90-ea2eacfb6d06" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="updateCart" ><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="checkCartExists" doc:id="f66e6ba8-bf85-4c88-add8-381a34d4bb55" name="checkCartExists"/>
+		<choice doc:name="Choice" doc:id="0973c3ac-dc8e-4d26-9409-4c0b98166990" >
+			<when expression="#[payload]">
+				<os:retrieve doc:name="objectStore_cartCustomerMapping" doc:id="612a7035-a669-4af9-8368-da5b81b9f31a" key="#[vars.shoppingCartId]" objectStore="Object_store_config" target="customerId"/>
+				<os:retrieve doc:name="retrieveCartBasedOnCustomerId" doc:id="b74c3d60-667c-4035-9826-a5762948bece" key="#[vars.customerId]" objectStore="Object_store_config"/>
+				<ee:transform doc:name="finalUpdatePayload" doc:id="1c802a5e-416b-4e75-9d37-2797784ec92e" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	customerId:vars.customerId,
+	cart:[
+		{
+			cartId:vars.shoppingCartId,
+			isActive:"True",
+			items: payload.cart.items
+    	}
+    	]
+	
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<os:store doc:name="objectStore__connectorCart" doc:id="b1df7fe8-903f-48eb-ae51-374fd1148ace" key="#[vars.customerId]" objectStore="Object_store_config" failOnNullValue="false"/>
+				<ee:transform doc:name="finalMessage" doc:id="89241abe-1a21-4077-bc61-ed1c80a4f0c0" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{"message": "Spaces updated successfully in cart"}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="cartNotExists" doc:id="d9032c26-ba9f-4673-8974-a9597759e453" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{"message": "Cart doesn't exist or cart is inactive. Please use create service to Create cart"}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="9287a076-5a1b-45aa-a831-9fcf89cea222" >
+				<flow-ref doc:name="Flow Reference" doc:id="102715ae-84e9-47b9-a848-eeab0aa3c1ab" name="common-error-handler_connector-exception"/>
+				<raise-error doc:name="Raise error" doc:id="c9177c2e-7661-4de9-afc6-d84692ff1929" type="ANY"/>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>

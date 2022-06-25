@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="get-shopping-cartFlow" doc:id="39cb8873-186a-4111-ae4f-df006889bdf4" >
+		<logger level="INFO" doc:name="Logger" doc:id="17addb4b-a411-4c95-a98a-dc4548bd5f3d" message="Requet Received for geting shopping cart Details"/>
+		<flow-ref doc:name="checkCartExists" doc:id="08136400-ad25-4a9e-89b1-2f540324a0f9" name="checkCartExists"/>
+		<choice doc:name="Choice" doc:id="009d5bb4-35e2-4532-a7a1-7a4bc8b4eceb" >
+			<when expression="#[payload]">
+				<os:retrieve doc:name="objectStore_cartCustomerMapping" doc:id="32419891-29c2-48e8-aa04-cf757e7e5320" key="#[vars.shoppingCartId]" objectStore="Object_store_config"/>
+				<os:retrieve doc:name="objectStore_connectorCart" doc:id="dc9641c9-2e4e-418b-b4af-da60c41e765d" key="#[payload]" objectStore="Object_store_config"/>
+				<ee:transform doc:name="extractActiveCartDetails" doc:id="a758820a-62a3-430d-9eed-a9465766db48" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload.cart filter ($.isActive == 'True' )]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="casrtDoesnotExist" doc:id="d9bc992c-4978-40a9-99dc-4bd04d8db8a5" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{"message" : "cart doesnot exist or cart is inactive"}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="5cc6229b-fdbc-4852-8083-d50a9f20107b" message="Requet Completed for geting shopping cart Details #[payload]"/>
+	</flow>
+	<sub-flow name="checkCartExists" doc:id="61e65730-bc44-4be6-bc4d-5f4f700ab844" >
+		<os:contains doc:name="ObjectStore__Connector_cartCustomerMapping" doc:id="30058cd4-e693-4d49-a2d5-f3613d1d18de" key="#[vars.shoppingCartId]" objectStore="Object_store_config"/>
+	</sub-flow>
+</mule>

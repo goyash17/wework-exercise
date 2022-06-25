@@ -1,0 +1,15 @@
+{
+  "identifier": "1",
+  "customerId": "2000",
+  "items": [
+    {
+      "noOfSpaces": 5,
+      "location": "LA"
+    },
+    {
+      "noOfSpaces": 10,
+      "location": "DEL"
+    }
+  ],
+  "created": "07-22-2022"
+}

@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<os:object-store name="Object_store_config" doc:name="Object store" doc:id="c36b3af9-bb31-4de5-bd52-89b0d7f71fde" maxEntries="5" entryTtl="15" entryTtlUnit="MINUTES" expirationInterval="15" persistent="false"/>
+	<flow name="add-shopping-cartFlow" doc:id="fa5f266c-d7d2-4421-b75d-36838ba3c927" >
+		<flow-ref doc:name="check-cartFlow" doc:id="5daca56d-0532-4368-85c0-6f9a92e8e974" name="checkIfCustomerCartExists"/>
+		<choice doc:name="Choice" doc:id="df8985aa-d686-439c-9284-eed8b4568051" >
+			<when expression="#[!vars.cartFound]">
+				<logger level="INFO" doc:name="creatingNewCart_logger" doc:id="dad4f581-445b-4746-9e9c-916a851fc33b" message="No existing cart found .....creating a new one!!"/>
+				<flow-ref doc:name="map-cartNcustomersubFlow" doc:id="5c25262e-6bb0-4db6-97d8-37c23800601f" name="map-cartNcustomersubFlow"/>
+				<ee:transform doc:name="finalPayload" doc:id="21f4d9f8-90b8-44bb-976c-6034325744dc">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	customerId:payload.customerId,
+	cart:[
+		{
+			cartId:vars.cartId,
+			isActive:"True",
+			items: payload.items
+    	}
+    	]
+	
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<os:store doc:name="storeCustomerIdasKeywithAddPayload" doc:id="37eec3f8-806f-42f4-9cea-335c037cad17" key="#[payload.customerId]" objectStore="Object_store_config" failOnNullValue="false">
+				</os:store>
+				<logger level="INFO" doc:name="finalLogger" doc:id="b9326985-fe60-41cd-aec0-88cc72524931" message="Cart created and space addition successful"/>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="cartAlreadyExists_logger" doc:id="2b170a7c-9ade-4fec-895b-5ae5c02725bd" message='"cart already exists ||| checking for active entry"'/>
+				<ee:transform doc:name="newCartData" doc:id="fa01490d-db3e-494b-b2c6-0c0c0e5f84fd" >
+					<ee:message >
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="newCartData" ><![CDATA[payload]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<flow-ref doc:name="checkOldCart" doc:id="f808cf96-9782-4528-89a9-31ff21af6f4b" name="checkOldCart"/>
+				<choice doc:name="Choice" doc:id="9a433c5e-ede6-4ef1-9112-29c9945892cc" >
+					<when expression="#[sizeOf(vars.existingCart) &lt; 0]">
+						<logger level="INFO" doc:name="activeCartAlreadyExistsLogger" doc:id="e72815bf-2342-4aa6-b4bb-f461916b26b4" message='"Active cart already exists  || Please use correct service"'/>
+						<ee:transform doc:name="activeCartAlreadyExists" doc:id="9c22b83c-398e-48b4-9546-f3a0adae7798" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{"message" : "Active cart already exists  || Please use correct service"}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</when>
+					<otherwise >
+						<flow-ref doc:name="addToCart" doc:id="b76acdef-c405-4e25-8630-6bfee941bfdc" name="addToCart"/>
+						<ee:transform doc:name="finalPayload" doc:id="cd674ab6-cc86-4159-b719-f2b38a08b3ae" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+						<logger level="INFO" doc:name="Logger" doc:id="4976606f-5538-4202-80a5-4f0a07c2e5d5" message="Shopping Cart created || Spaces added to the cart successfully"/>
+					</otherwise>
+				</choice>
+			</otherwise>
+		</choice>
+		<error-handler>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="74805fbb-183c-4e67-a467-47d770c856b1" >
+				<flow-ref doc:name="commonErrorHandler" doc:id="0c87b416-7779-4e24-acbd-5ca72e4b0043" name="common-error-handler_connector-exception"/>
+				<raise-error doc:name="Raise error" doc:id="2ea0d433-c9e2-4f00-8f81-aeb695e9d259" type="ANY"/>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<sub-flow name="map-cartNcustomersubFlow" doc:id="b4d3941a-aa6b-462a-8b80-8c02d224972c" >
+		<ee:transform doc:name="Transform Message" doc:id="09ec5842-e557-4b28-af98-f1fd87958354" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="cartId" ><![CDATA[uuid()]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<os:store doc:name="ObjectStore_Connector_cartCustomerMapping" doc:id="44d21b32-0786-4714-b3f4-3f8c765b0e6c" key="#[vars.cartId]" failOnNullValue="false" objectStore="Object_store_config">
+			<os:value ><![CDATA[#[payload.customerId]]]></os:value>
+		</os:store>
+	</sub-flow>
+	<sub-flow name="addToCart" doc:id="cc9fba14-7ab9-4ad9-9e61-e68526e0652d" >
+		<logger level="INFO" doc:name="addingToCart" doc:id="3a26d719-1225-48d0-a3de-278401c3883e" message="Adding to Cart"/>
+		<flow-ref doc:name="map-cartNcustomersubFlow" doc:id="f53301ce-7c66-4f22-9d43-a73508892b71" name="map-cartNcustomersubFlow"/>
+		<ee:transform doc:name="Transform Message" doc:id="79053205-356a-4603-bf05-554e22f7f86a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	customerId:vars.newCartData.customerId,
+	cart:[
+		{
+			cartId:vars.cartId,
+			isActive:"True",
+			items:vars.newCartData.items ++ vars.oldCart.cart.items
+    	}
+    	]
+	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<os:store doc:name="storeCustomerCart" doc:id="d9bf2677-e1c8-49f3-8b57-66535d74483d" key="#[payload.customerId]"/>
+		<logger level="INFO" doc:name="Logger" doc:id="4f1a7742-23a8-4ade-b66b-2e258c4872f9" message="#[payload]"/>
+	</sub-flow>
+	<sub-flow name="checkOldCart" doc:id="6ee4a545-622e-49b4-8b78-1c9702abc0f6" >
+		<os:retrieve doc:name="retrieveOldCart" doc:id="31062f4a-92bd-4663-9afa-96fc897fca54" key="#[payload.customerId]" objectStore="Object_store_config"/>
+		<ee:transform doc:name="oldCart" doc:id="0adef7d9-c14e-479d-8f51-538b54e86e59" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="oldCart" ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="existingActiveCart" doc:id="658046c4-cd76-4264-941a-7ec9942655e1" >
+			<ee:message>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="existingCart" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.cart filter ($.isActive == "True")]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+	</sub-flow>
+	<sub-flow name="checkIfCustomerCartExists" doc:id="2e953d8f-b23e-48b3-99b7-c27dfcb083eb" >
+		<logger level="INFO" doc:name="Logger" doc:id="9fe57c30-ddea-4b9e-ba88-f88a449d361e" message="checking if User's cart already exists"/>
+		<os:contains doc:name="Contains" doc:id="cabb49cd-5edb-402f-bc12-516035efe474" key="#[payload.customerId]" objectStore="Object_store_config" target="cartFound"/>
+	</sub-flow>
+</mule>
