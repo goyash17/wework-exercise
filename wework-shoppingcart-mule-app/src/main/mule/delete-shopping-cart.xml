@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<flow name="delete-shopping-cart" doc:id="66d3ae8e-b5a6-416e-a75e-70853d556e5d" >
+		<logger level="INFO" doc:name="Logger" doc:id="41bd9754-8985-44e8-8f79-c32a89534b3e" message="Requet Received for deleting shopping cart Details"/>
+		<flow-ref doc:name="checkCartExists" doc:id="cacbe4aa-98ce-408a-843e-6716bf25f930" name="checkCartExists"/>
+		<choice doc:name="Choice" doc:id="7e700d7e-41f3-4dc0-98c4-8adba4a9f14d" >
+			<when expression="#[payload]">
+				<os:retrieve doc:name="objectStore_cartCustomerMapping" doc:id="e7efe1cd-879a-439e-8e86-32a5b8e451c7" key="#[vars.shoppingCartId]" objectStore="Object_store_config" target="customerId"/>
+				<os:retrieve doc:name="objectStore_connectorCart" doc:id="31fdc79e-bc12-4270-9016-86798b34b3b6" key="#[vars.customerId]" objectStore="Object_store_config"/>
+				<os:remove doc:name="objectStore_removecart" doc:id="4c23b14a-e6b7-4914-a85d-bec76d0105c3" key="#[vars.customerId]" objectStore="Object_store_config"/>
+				<os:remove doc:name="objectStore_removeCustomer" doc:id="dd404268-3211-4c6c-890d-9453392f59be" key="#[vars.shoppingCartId]" objectStore="Object_store_config"/>
+				<ee:transform doc:name="Transform Message" doc:id="24f07427-d7bc-4024-a0df-4df085117087" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{"message" : "Cart deactivated successfully"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="casrtDoesnotExist" doc:id="59167173-78cb-4ff0-9295-16ab5d9e4227" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{"message" : "cart doesnot exist or cart is inactive"}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="992ec63f-1d0e-4ef6-b0d2-6a709c921ea0" message="Requet Completed for deleting shopping cart Details #[payload]"/>
+	</flow>
+	</mule>

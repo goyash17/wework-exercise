@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+	xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<munit:config name="shopping-cart-api-test-suite.xml" />
+	<munit:test name="shopping-cart-api-test-suite-get:\customers\(customerId)\shoppingCarts:shopping-cart-api-configTest-1" doc:id="cd7367d0-c5f6-41ab-b120-31eb210666df" description="Test">
+		<munit:execution >
+			<os:store doc:name="store_cartCustomermap" doc:id="7ad364e8-586f-450e-bacf-6c59236c5cc0" key="cartId" objectStore="Object_store_config" failOnNullValue="false">
+				<os:value ><![CDATA[#['123']]]></os:value>
+			</os:store>
+			<os:store doc:name="store_customerCart" doc:id="28abcd97-a9eb-4867-9f62-8638bdf7deb5" key="123" objectStore="Object_store_config" failOnNullValue="false">
+				<os:value ><![CDATA[#[{"cart": [
+    {
+      "cartId": "97b3e366-10c5-4b48-a7dd-67974cdd50e9",
+      "isActive": "True",
+      "items": [
+        {
+          "noOfSpaces": 5,
+          "location": "LA"
+        },
+        {
+          "noOfSpaces": 10,
+          "location": "DEL"
+        }
+      ]
+    }
+  ]
+  }]]]></os:value>
+			</os:store>
+			<munit:set-event doc:name="Set uri param" doc:id="0ba4a9d0-d63b-4066-b06b-0b5ab40a316e" >
+				<munit:attributes value="#[{ uriParams:&#10; { 'shoppingCartId' :  'cartId'}}]" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to get:\shoppingCarts\(shoppingCartId):shopping-cart-api-config" doc:id="6ac706ae-8577-4912-b6ef-02246c88c2d6" name="get:\shoppingCarts\(shoppingCartId):shopping-cart-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-that doc:name="Assert that" doc:id="7831bf75-946e-45a5-96b9-ede4826da878" is="#[MunitTools::notNullValue()]" expression="#[payload]"/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="shopping-cart-api-test-suite-get:\customers\(customerId)\shoppingCarts:shopping-cart-api-configTest-2" doc:id="93ba7b7c-aa7b-4771-9204-f47b97f6a430" >
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="d53c4b93-08c4-4307-b693-344a30b1868c" >
+				<munit:attributes value="#[{ uriParams:&#10; { 'shoppingCartId' :  'cartIdNotExists'}}]" />
+				<munit:variables >
+					<munit:variable key="shoppingCartId" value="123" />
+				</munit:variables>
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to get:\shoppingCarts\(shoppingCartId):shopping-cart-api-config" doc:id="a14be132-d232-464e-af52-2f73391653ba" name="get:\shoppingCarts\(shoppingCartId):shopping-cart-api-config" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-that doc:name="Assert that" doc:id="a346f26f-ed14-4ec2-b0ae-fc5a5414d1f6" is="#[MunitTools::notNullValue()]" expression="#[payload]"/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="shopping-cart-api-test-suite-post-1:\shoppingCarts:application\json:shopping-cart-api-configTest" doc:id="f21a1c2b-db69-46f8-9989-c982783c7bd2" description="Test">
+		<munit:execution >
+			<munit:set-event doc:name="Set payload" doc:id="bad5c35e-dec7-430c-ae14-ba532a9bc247" >
+				<munit:payload value='{&#10;  "identifier": "1",&#10;  "customerId": "2000",&#10;  "items": [&#10;    {&#10;      "noOfSpaces": 5,&#10;      "location": "LA"&#10;    },&#10;    {&#10;      "noOfSpaces": 10,&#10;      "location": "DEL"&#10;    }&#10;  ],&#10;  "created": "07-22-2022"&#10;}' mediaType="application/json" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to post:\shoppingCarts:application\json:shopping-cart-api-config" doc:id="bf566652-8c15-438c-8657-c2196cd512a0" name="post:\shoppingCarts:application\json:shopping-cart-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-that doc:name="Assert that" doc:id="4d98d7e5-1950-43a1-b566-1a0dcffcf87b" is="#[MunitTools::notNullValue()]" expression="#[payload]"/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="shopping-cart-api-test-suite-post-2:\shoppingCarts:application\json:shopping-cart-api-configTest" doc:id="56329925-d7b0-4897-8e4d-53ac8c60bf9f" description="Test">
+		<munit:execution >
+			<munit:set-event doc:name="Set payload" doc:id="a0d04950-3b3e-4de4-b5ff-ddceeff95167" >
+				<munit:payload value='{&#10;  "identifier": "2",&#10;  "customerId": "2002",&#10;  "items": [&#10;    {&#10;      "noOfSpaces": 5,&#10;      "location": "LA"&#10;    },&#10;    {&#10;      "noOfSpaces": 10,&#10;      "location": "DEL"&#10;    }&#10;  ],&#10;  "created": "07-22-2022"&#10;}' mediaType="application/json" />
+			</munit:set-event>
+			<os:store doc:name="store_customerCart" doc:id="09be488c-7843-4d45-bfc8-d801244e6abd" key="2002" failOnNullValue="false" objectStore="Object_store_config">
+				<os:value><![CDATA[#[{"cart": [
+    {
+      "cartId": "post-cart-id-2",
+      "isActive": "True",
+      "items": [
+        {
+          "noOfSpaces": 5,
+          "location": "LA"
+        },
+        {
+          "noOfSpaces": 10,
+          "location": "DEL"
+        }
+      ]
+    }
+  ]
+  }]]]></os:value>
+			</os:store>
+			<flow-ref doc:name="Flow-ref to post:\shoppingCarts:application\json:shopping-cart-api-config" doc:id="03d1402e-0e46-48a7-aa9b-34e3fd9faea4" name="post:\shoppingCarts:application\json:shopping-cart-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-that doc:name="Assert that" doc:id="7c8c7a7c-0b23-494a-a50a-dcf79540bdd8" is="#[MunitTools::notNullValue()]" expression="#[payload]"/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="shopping-cart-api-test-suite-put-1:\shoppingCarts\(shoppingCartId):application\json:shopping-cart-api-configTest" doc:id="57b40353-fd51-48f7-aaa0-aaae36e47fec" description="Test">
+		<munit:execution >
+			<munit:set-event doc:name="setUpdatePayloadUriParams" doc:id="35ef20dd-a638-407a-9846-869e60d57200">
+				<munit:payload value='{&#10;  "identifier": "3",&#10;  "customerId": "3000",&#10;  "items": [&#10;    {&#10;      "noOfSpaces": 5,&#10;      "location": "LA"&#10;    },&#10;    {&#10;      "noOfSpaces": 10,&#10;      "location": "DEL"&#10;    }&#10;  ],&#10;  "created": "07-22-2022"&#10;}' mediaType="application/json" />
+				<munit:attributes value="#[{ uriParams:&#10; { 'shoppingCartId' :  'put_cartId'}}]" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to put:\shoppingCarts\(shoppingCartId):application\json:shopping-cart-api-config" doc:id="e8549db6-f771-45bd-b843-6ae00a08af4f" name="put:\shoppingCarts\(shoppingCartId):application\json:shopping-cart-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="Assert equals" doc:id="ae53d858-f921-4cfb-970a-53fa474b0d86" actual="#[payload]" expected="#[{&quot;message&quot;: &quot;Cart doesn't exist or cart is inactive. Please use create service to Create cart&quot;}]"/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="shopping-cart-api-test-suite-put-2:\shoppingCarts\(shoppingCartId):application\json:shopping-cart-api-configTest" doc:id="7ab40212-fcd9-41ff-8c02-0f2a63b446a0" description="Test">
+		<munit:execution >
+			<munit:set-event doc:name="setUpdatePayloadUriParams" doc:id="c8781a27-dd50-4eae-bca1-b73a3616f23c">
+				<munit:payload value='{&#10;  "identifier": "3",&#10;  "customerId": "3003",&#10;  "items": [&#10;    {&#10;      "noOfSpaces": 5,&#10;      "location": "LA"&#10;    },&#10;    {&#10;      "noOfSpaces": 10,&#10;      "location": "DEL"&#10;    }&#10;  ],&#10;  "created": "07-22-2022"&#10;}' mediaType="application/json" />
+				<munit:attributes value="#[{ uriParams:&#10; { 'shoppingCartId' :  'put_cartId_3003'}}]" />
+			</munit:set-event>
+			<os:store doc:name="objectStore_cartCustomermap" doc:id="903ee315-a700-4343-bb10-04cd2f5f7ee8" key="put_cartId_3003" failOnNullValue="false" objectStore="Object_store_config">
+				<os:value><![CDATA[#['3003']]]></os:value>
+			</os:store>
+			<os:store doc:name="objectStore_customerItems" doc:id="4340bdb3-9db2-435d-a245-9062392e888e" key="3003" failOnNullValue="false" objectStore="Object_store_config">
+				<os:value><![CDATA[#[{"cart": [
+    {
+      "cartId": "put-customer-cart-2",
+      "isActive": "True",
+      "items": [
+        {
+          "noOfSpaces": 5,
+          "location": "LA"
+        },
+        {
+          "noOfSpaces": 10,
+          "location": "DEL"
+        }
+      ]
+    }
+  ]
+  }]]]></os:value>
+			</os:store>
+			<flow-ref doc:name="Flow-ref to put:\shoppingCarts\(shoppingCartId):application\json:shopping-cart-api-config" doc:id="03d6fd57-b97f-456b-ba0e-5f7b54de3949" name="put:\shoppingCarts\(shoppingCartId):application\json:shopping-cart-api-config"/>
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-that doc:name="Assert that" doc:id="bf1b02f8-fb28-4152-b848-45c851d65035" expression="#[payload]" is="#[MunitTools::notNullValue()]"/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="shopping-cart-api-test-suite-delete-1:\shoppingCarts\(shoppingCartId):application\json:shopping-cart-api-configTest" doc:id="30b28de2-427c-4e0b-8099-5453581140fa" description="Test">
+		<munit:execution >
+			<munit:set-event doc:name="setUriParam" doc:id="8f4e55b1-82f6-4590-a932-2a3ccd8246b0">
+				<munit:attributes value="#[{ uriParams:&#10; { 'shoppingCartId' :  'cartId-delete-1'}}]" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to delete:\shoppingCarts\(shoppingCartId):application\json:shopping-cart-api-config" doc:id="a023f28e-42bb-4d82-a257-4fddbc9ad549" name="delete:\shoppingCarts\(shoppingCartId):application\json:shopping-cart-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="Assert equals" doc:id="2217220d-d5cf-4de6-86d8-d25dc98928e9" actual="#[payload]" expected='#[{"message" : "cart doesnot exist or cart is inactive"}]' />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="shopping-cart-api-test-suite-delete-2:\shoppingCarts\(shoppingCartId):application\json:shopping-cart-api-configTest" doc:id="abe6fada-c729-4a0c-b087-fe9d3947d48f" description="Test">
+		<munit:execution >
+			<munit:set-event doc:name="setUriParam" doc:id="b82bc86a-6020-4790-b6de-8f24c56157ff">
+				<munit:attributes value="#[{ uriParams:&#10; { 'shoppingCartId' :  'cartId-delete-2'}}]" />
+			</munit:set-event>
+			<os:store doc:name="object_store_cartCustomermap" doc:id="631cea2c-b330-4e82-9993-2d70bd7ff4f3" key="cartId-delete-2" failOnNullValue="false" objectStore="Object_store_config">
+				<os:value><![CDATA[#['customer-delete']]]></os:value>
+			</os:store>
+			<os:store doc:name="objectstore_customerCart" doc:id="e2aa4d3f-cfa5-45c3-8bd3-e16c9266c343" key="customer-delete" failOnNullValue="false" objectStore="Object_store_config">
+				<os:value><![CDATA[#[{"cart": [
+    {
+      "cartId": "97b3e366-10c5-4b48-a7dd-67974cdd50e9",
+      "isActive": "True",
+      "items": [
+        {
+          "noOfSpaces": 5,
+          "location": "LA"
+        },
+        {
+          "noOfSpaces": 10,
+          "location": "DEL"
+        }
+      ]
+    }
+  ]
+  }]]]></os:value>
+			</os:store>
+			<flow-ref doc:name="Flow-ref to delete:\shoppingCarts\(shoppingCartId):application\json:shopping-cart-api-config" doc:id="09b0ad45-70ba-495b-a4db-d1d0f5732e25" name="delete:\shoppingCarts\(shoppingCartId):application\json:shopping-cart-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="Assert equals" doc:id="63c9971f-015b-4bb4-9ba6-56a5c686714d" actual="#[payload]" expected='#[{"message" : "Cart deactivated successfully"}]' />
+		</munit:validation>
+	</munit:test>
+
+</mule>

@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule
+	xmlns:notifications-prc-api="http://www.mulesoft.org/schema/mule/notifications-prc-api"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/notifications-prc-api http://www.mulesoft.org/schema/mule/notifications-prc-api/current/mule-notifications-prc-api.xsd">
+	<http:request-config name="common-notifications-httpRequestConfig" doc:name="HTTP Request configuration" doc:id="d698353c-4ad8-4c06-b759-7f2f7c9b4f19" />
+	<sub-flow name="common-error-handler_log"
+		doc:id="7707dd24-3919-4f0c-800f-0868cdf364b7">
+		<logger level="INFO" doc:name="log error" doc:id="b57a5ba5-8c44-4b8f-bbb9-34b50fa37ad1" message='#[%dw 2.0
+output application/json ---
+{
+ 	attributes: attributes,
+ 	error:
+		errorType: error.errorType default "",
+		description: error.description default "",
+		detailedDescription: error.detailedDescription default "",
+}]' />
+	</sub-flow>
+	
+	<sub-flow name="common-error-handler_connector-exception"
+		doc:id="fb30d556-cc7d-4d7c-861a-2744f590999f">
+		<flow-ref doc:name="common-error-handler_log" doc:id="65acab96-3116-45db-a357-e47535a8f02b" name="common-error-handler_log"/>
+		<ee:transform doc:name="Build Error Response"
+			doc:id="7baabc29-f9d7-4c1d-95a4-198fb86eae72">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"errorCode": vars.httpStatus default "",
+  	"errorMessage": error.description default "",
+  	"transactionId": correlationId default "",
+  	"timeStamp": now(),
+  	"causedBy": vars.exceptionResponse
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value="#[payload]"
+			doc:name="Set Exception Payload Var"
+			doc:id="53d1a429-cae4-4128-8ab7-72fa899f0360"
+			variableName="exceptionResponse" />
+		<async doc:name="send msg async"
+			doc:id="87840a5b-926c-4964-a033-5c0aa590abf9">
+			<flow-ref doc:name="common-error-handler_send-notifications"
+				doc:id="f709395b-6449-4b95-b1c0-c100c57606f9"
+				name="common-error-handler_send-notifications" />
+		</async>
+	</sub-flow>
+	
+	<sub-flow name="common-error-handler_http-exception"
+		doc:id="68d885bc-3ef5-4f2d-a97c-930c2944c649">
+		<flow-ref doc:name="common-error-handler_log"
+			doc:id="89861063-4b57-4be2-89ee-8e48e8cade1b"
+			name="common-error-handler_log" />
+		<set-variable
+			value="#[error.muleMessage.attributes.statusCode default 500]"
+			doc:name="Set HTTP Status Var"
+			doc:id="dec3ebd5-0b24-4d28-b498-7bb046e4f1db"
+			variableName="httpStatus" />
+		<ee:transform doc:name="Build Error Response"
+			doc:id="0dceaa77-4a7c-45ae-8e91-0ed29319c98f">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"errorCode": error.muleMessage.attributes.StatusCode default 500,
+  	"errorMessage":
+  		if(error.errorMessage.payload is Object and !isEmpty(error.errorMessage.payload.errorMessage)) error.errorMessage.payload.errorMessage
+  		else if(!isEmpty(error.errorMessage.payload)) error.errorMessage.payload
+  		else error.description,
+  	"transactionId": correlationId,
+  	"timeStamp": now(),
+  	"causedBy": vars.exceptionResponse
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value="#[payload]"
+			doc:name="Set Exception Payload Var"
+			doc:id="b8b77c1a-2557-45b7-898e-ee928bbc77dd"
+			variableName="exceptionResponse" />
+		<async doc:name="send msg async"
+			doc:id="95270156-9127-46df-86cf-ae6ad1cd8c25">
+			<flow-ref doc:name="common-error-handler_send-notifications"
+				doc:id="ae5d6221-c838-450f-b0ec-5f743aaa287f"
+				name="common-error-handler_send-notifications" />
+		</async>
+	</sub-flow>
+
+	<sub-flow name="common-error-handler_notification"
+		doc:id="809d2192-c45e-4bc6-a59c-87bd0719bbb4">
+		<http:request method="POST"
+			doc:name="notifications-prc-api request"
+			doc:id="4a37af7c-2987-4a75-86cc-27c60a335cd3"
+			config-ref="common-notifications-httpRequestConfig"
+			path="/notifications" sendCorrelationId="AUTO"
+			correlationId="correlationId" outputMimeType="application/json"
+			requestStreamingMode="NEVER">
+			<http:headers><![CDATA[#[output application/java
+---
+{
+	"Content-Type" : "application/json"
+}]]]></http:headers>
+		</http:request>
+	</sub-flow>
+	<sub-flow name="common-error-handler_send-all"
+		doc:id="8b755280-7d2c-4864-a612-4b9f5cab8e78">
+		<scatter-gather doc:name="S-G send-all"
+			doc:id="f11d0f0b-bc68-4871-95e2-677fb2317480" maxConcurrency="2">
+			<route>
+				<ee:transform doc:name="Build Email"
+					doc:id="356730dd-0e1f-4bba-b8d1-55245dc08d4a">
+					<ee:message>
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"notificationType": "email"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<flow-ref doc:name="common-error-handler_notification"
+					doc:id="b03ba747-fc51-4492-8296-b161ee57be00"
+					name="common-error-handler_notification" />
+			</route>
+			<route>
+				<ee:transform doc:name="Build SMS"
+					doc:id="bd62e654-7e98-4d2f-846b-c8848f1202c4">
+					<ee:message>
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"notificationType": "sms"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<flow-ref doc:name="common-error-handler_notification"
+					doc:id="6ed6dc3f-0b46-404d-ab03-1ce7d00fde82"
+					name="common-error-handler_notification" />
+			</route>
+            <route>
+              <ee:transform doc:name="Build Slack"
+                doc:id="849b201b-88bf-45c3-9b6c-c0e7fb8fee7a">
+                <ee:message>
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"notificationType": "slack"
+}]]></ee:set-payload>
+                </ee:message>
+              </ee:transform>
+              <flow-ref doc:name="common-error-handler_notification"
+                doc:id="073923cf-9045-46f6-bc13-b07a3306b91d"
+                name="common-error-handler_notification" />
+            </route>
+		</scatter-gather>
+	</sub-flow>
+	<sub-flow name="common-error-handler_send-notifications"
+		doc:id="24153c9d-8cdb-4a7a-ab4e-6191a21d0c41">
+		<set-variable value='#["email"]'
+			doc:name="notifications.send"
+			doc:id="56caacdf-4e69-4bfa-8246-c774882c7b61"
+			variableName="notificationsSend" />
+		<choice doc:name="notificationsSend choice"
+			doc:id="dedeb768-e2a7-485d-a449-5c817dfdb625">
+			<when expression="#[vars.notificationsSend == 'email']">
+				<ee:transform doc:name="build msg"
+					doc:id="793dcab3-de63-41ca-b1f4-56357498f798">
+					<ee:message>
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"notificationType": "email"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<flow-ref doc:name="common-error-handler_notification"
+					doc:id="0a9cf8be-ea68-420a-8394-5058e70a511b"
+					name="common-error-handler_notification" />
+			</when>
+			<when expression="#[vars.notificationsSend == 'sms']">
+				<ee:transform doc:name="build msg"
+					doc:id="5f5922fe-c563-4b06-9a10-5a6d10501d52">
+					<ee:message>
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"notificationType": "sms"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<flow-ref doc:name="common-error-handler_notification"
+					doc:id="c4a6bf9f-77b2-4765-83b9-75b5a8b3136d"
+					name="common-error-handler_notification" />
+			</when>
+			<when expression="vars.notificationsSend == 'slack'">
+				<ee:transform doc:name="build msg" 
+					doc:id="4438afba-8050-4db8-93fa-c95beb141199" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"notificationType": "slack"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<flow-ref doc:name="common-error-handler_notification" doc:id="891ffcc8-a814-46eb-8b22-e39d12efc6a5" name="common-error-handler_notification"/>
+			</when>			
+			<when expression="#[vars.notificationsSend == 'all']">
+				<flow-ref doc:name="common-error-handler_send-all"
+					doc:id="93ab0b1e-cf9d-41d5-9098-1a0804b3e6c9"
+					name="common-error-handler_send-all" />
+			</when>
+		</choice>
+	</sub-flow>
+
+</mule>

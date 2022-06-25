@@ -1,0 +1,5 @@
+%dw 2.0
+
+type auto_cc9fba14_7ab9_4ad9_9e61_e68526e0652d_Output_Variables_oldCart = {|  |} {"typeAlias": "Serializable",
+"typeId": "java.io.Serializable"}
+
